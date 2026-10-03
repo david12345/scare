@@ -13,7 +13,9 @@ Zonas:
 - **Jardim**, com sebes, fonte com anjo e o portão de saída
 - **Galeria de cura**, com camas ao ar livre, e o **pomar**
 
-Abre `index.html` no navegador.
+**Jogar online:** https://david12345.github.io/scare/
+
+Também podes abrir `index.html` diretamente no navegador.
 
 - **W A S D**: andar
 - **Shift**: correr, sem nunca cansar (faz barulho)
