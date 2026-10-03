@@ -2,7 +2,7 @@
 
 Jogo de terror em primeira pessoa, em 3D, num único ficheiro HTML (Three.js).
 
-Sanatório de Santa Luzia, no alto da serra, a 1640 m, coberto de nevoeiro. Cinco criaturas deambulam pelo edifício e pelos terrenos desde o início. Junta as 8 páginas do diário do Dr. Moura e sai pelo portão.
+Sanatório de Santa Luzia, no alto da serra, a 1640 m, coberto de nevoeiro e iluminado pela lua. Cinco criaturas deambulam pelo edifício e pelos terrenos desde o início. Não te matam: quando te apanham, pregam-te um susto e desaparecem no nevoeiro. Junta as 8 páginas do diário do Dr. Moura e sai pelo portão.
 
 Zonas:
 - **Ala 13**: piso superior com três galerias longas e envidraçadas e quartos com camas de ferro
@@ -16,7 +16,7 @@ Zonas:
 Abre `index.html` no navegador.
 
 - **W A S D**: andar
-- **Shift**: correr (faz barulho)
+- **Shift**: correr, sem nunca cansar (faz barulho)
 - **F**: lanterna
 - **Rato**: olhar
 - **Esc**: pausar

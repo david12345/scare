@@ -87,7 +87,6 @@ h2 { font-size: clamp(2.4rem, 9vw, 4rem); color: var(--paper); }
   </div>
   <div class="hud-bottom">
     <div class="meter"><span class="label">Lanterna</span><i><b id="bat"></b></i></div>
-    <div class="meter"><span class="label">Fôlego</span><i><b id="sta"></b></i></div>
   </div>
   <div id="cross"></div>
   <div id="msg"></div>
@@ -105,10 +104,10 @@ h2 { font-size: clamp(2.4rem, 9vw, 4rem); color: var(--paper); }
     <span class="stamp">Prontuário 13/52 · Sanatório de Santa Luzia</span>
     <h1>Ala 13</h1>
     <p>O sanatório fica no alto da serra, a 1&#8239;640 metros, onde o nevoeiro nunca levanta. Foi fechado em 1952, na noite em que o Dr. Moura e os doentes da ala 13 desapareceram. As 8 páginas do diário dele estão espalhadas pelo edifício e pelos terrenos: a ala, o hall de entrada, a capela, o cemitério, os jardins e a galeria de cura. Junta-as para abrir o portão.</p>
-    <p class="warn">Não estás sozinho. Eles vêm atrás da luz e do som dos teus passos.</p>
+    <p class="warn">Não estás sozinho. Eles vêm atrás da luz e do som dos teus passos. Não te matam, mas o susto é garantido.</p>
     <dl class="keys" id="keys">
       <dt>W A S D</dt><dd>andar</dd>
-      <dt>Shift</dt><dd>correr (faz barulho)</dd>
+      <dt>Shift</dt><dd>correr, sem cansar (faz barulho)</dd>
       <dt>F</dt><dd>ligar e desligar a lanterna</dd>
       <dt>Rato</dt><dd>olhar em volta</dd>
       <dt>Esc</dt><dd>pausar</dd>
@@ -284,7 +283,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+renderer.toneMappingExposure = 1.55;
 const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 420);
 camera.rotation.order = 'YXZ';
 addEventListener('resize', () => {
@@ -592,7 +591,7 @@ const A = {
 /* ---------- World ---------- */
 let scene, flash, playerGlow, scareLight, lamps, pages, batteries, exit, startT, OBST, mist, mistBase;
 const MONSTERS = [];
-const P = { x: 0, z: 0, y: UP, yaw: 0, pitch: 0, bob: 0, stepPhase: 0, battery: 100, stamina: 100, exhausted: false, light: true, running: false, moving: false, pages: 0, zone: 0 };
+const P = { x: 0, z: 0, y: UP, yaw: 0, pitch: 0, bob: 0, stepPhase: 0, battery: 100, light: true, running: false, moving: false, pages: 0, zone: 0, safe: 0 };
 let state = 'menu', now = 0, fear = 0, heartT = 0, knockT = 20, lockedMsgT = 0, relocT = 0;
 
 const _o = new THREE.Object3D();
@@ -646,38 +645,102 @@ function makeMonster(variant) {
   return g;
 }
 
+// value noise for the hills and the mountain skyline
+const hash = (x, z) => { const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453; return s - Math.floor(s); };
+function vnoise(x, z) {
+  const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi, u = xf * xf * (3 - 2 * xf), v = zf * zf * (3 - 2 * zf);
+  const a = hash(xi, zi), b = hash(xi + 1, zi), c = hash(xi, zi + 1), d = hash(xi + 1, zi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+const fbm = (x, z) => { let s = 0, a = .5, f = 1; for (let i = 0; i < 5; i++) { s += a * vnoise(x * f, z * f); f *= 2.03; a *= .5; } return s; };
+// The hillside outside the fence: flat around the grounds, rising into the serra.
+function terrH(x, z) {
+  const dx = Math.max(-6 - x, 0, x - W * T - 6), dz = Math.max(-6 - z, 0, z - H * T - 6), d = Math.hypot(dx, dz);
+  if (d <= 0) return -.1;
+  const k = clamp(d / 50, 0, 1);
+  return k * k * (3 - 2 * k) * (4 + fbm(x * .012, z * .012) * 34) + d * .12 - .1;
+}
 function buildOutside() {
   const cx = W * T / 2, cz = H * T / 2;
-  const skyGeo = new THREE.SphereGeometry(380, 24, 16), cols = [], top = new THREE.Color(0x06080b), hor = new THREE.Color(0x20272f), c = new THREE.Color();
+  // sky: night blue, pale near the horizon where the moon lights the mist
+  const skyGeo = new THREE.SphereGeometry(390, 32, 20), cols = [], top = new THREE.Color(0x101a28), hor = new THREE.Color(0x5b6b7e), c = new THREE.Color();
   const pos = skyGeo.attributes.position;
-  for (let i = 0; i < pos.count; i++) { c.copy(hor).lerp(top, clamp(pos.getY(i) / 170, 0, 1)); cols.push(c.r, c.g, c.b); }
+  for (let i = 0; i < pos.count; i++) { c.copy(hor).lerp(top, Math.pow(clamp(pos.getY(i) / 220, 0, 1), .6)); cols.push(c.r, c.g, c.b); }
   skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
   const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
   sky.position.set(cx, 0, cz); scene.add(sky);
-  const ridgeMat = new THREE.MeshBasicMaterial({ color: 0x141a20, fog: false });
-  for (let i = 0; i < 16; i++) {
-    const a = i / 16 * Math.PI * 2 + rnd(-.15, .15), d = rnd(280, 350), h = rnd(50, 140);
-    const m = new THREE.Mesh(new THREE.ConeGeometry(rnd(70, 130), h, 5), ridgeMat);
-    m.position.set(cx + Math.cos(a) * d, h / 2 - 25, cz + Math.sin(a) * d); scene.add(m);
+  // stars
+  const sp = [];
+  for (let i = 0; i < 700; i++) { const a = rnd(0, Math.PI * 2), e = rnd(.35, 1.4); sp.push(cx + Math.cos(a) * Math.cos(e) * 370, Math.sin(e) * 370, cz + Math.sin(a) * Math.cos(e) * 370); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xc8d4e6, size: 1.3, sizeAttenuation: false, fog: false, transparent: true, opacity: .7 })));
+  // moon and its halo, where the moonlight comes from
+  const mdir = new THREE.Vector3(-.45, .42, -.79).normalize();
+  const moon = new THREE.Mesh(new THREE.CircleGeometry(9, 32), new THREE.MeshBasicMaterial({ color: 0xeef2f6, fog: false }));
+  moon.position.set(cx + mdir.x * 360, mdir.y * 360, cz + mdir.z * 360); moon.lookAt(cx, 0, cz); scene.add(moon);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.mist, color: 0x9fb4cc, fog: false, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false }));
+  halo.position.copy(moon.position); halo.scale.set(120, 120, 1); scene.add(halo);
+  const moonLight = new THREE.DirectionalLight(0xaebfd6, .65);
+  moonLight.position.set(cx + mdir.x * 100, mdir.y * 100, cz + mdir.z * 100); moonLight.target.position.set(cx, 0, cz);
+  scene.add(moonLight, moonLight.target);
+
+  // three mountain ranges, each paler and bluer with distance, the highest with snow
+  [[200, 40, 70, 0x1d2622, 0x2f3a34, null], [270, 60, 110, 0x283340, 0x4b5868, 0x8e9cad], [345, 90, 150, 0x3b4858, 0x63738a, 0xc3cedb]].forEach(([R, base, amp, cLow, cMid, cSnow], ri) => {
+    const N = 320, verts = [], colsR = [], idx = [], lo = new THREE.Color(cLow), mid = new THREE.Color(cMid), snow = cSnow ? new THREE.Color(cSnow) : mid;
+    for (let i = 0; i <= N; i++) {
+      const a = i / N * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+      const n = fbm(ca * 2.2 + ri * 7, sa * 2.2 + ri * 3), h = base * .3 + Math.pow(n, 1.8) * amp * 1.6;
+      const rows = [[R, -30, lo], [R * .995, h * .55, mid], [R * .99, h, h > amp * .55 ? snow : mid]];
+      rows.forEach(([r, y, col]) => { verts.push(cx + ca * r, y, cz + sa * r); colsR.push(col.r, col.g, col.b); });
+      if (i < N) { const k = i * 3; idx.push(k, k + 3, k + 1, k + 1, k + 3, k + 4, k + 1, k + 4, k + 2, k + 2, k + 4, k + 5); }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(colsR, 3)); g.setIndex(idx);
+    scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, fog: false })));
+  });
+
+  // hillside terrain with grass, earth and rock
+  const S = 900, seg = 150, tg = new THREE.PlaneGeometry(S, S, seg, seg); tg.rotateX(-Math.PI / 2);
+  const tp = tg.attributes.position, tcol = [], grass = new THREE.Color(0x2f4030), dry = new THREE.Color(0x4a4a36), rock = new THREE.Color(0x5a5f62);
+  for (let i = 0; i < tp.count; i++) {
+    const x = tp.getX(i) + cx, z = tp.getZ(i) + cz, h = terrH(x, z);
+    tp.setY(i, h);
+    const n = fbm(x * .05, z * .05);
+    c.copy(grass).lerp(dry, clamp(n * 1.4 - .3, 0, 1)).lerp(rock, clamp((h - 14) / 20, 0, 1));
+    tcol.push(c.r, c.g, c.b);
   }
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshBasicMaterial({ color: 0x1f2621 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.set(cx, -.03, cz); scene.add(ground);
-  const trees = [];
-  while (trees.length < 320) {
-    const x = rnd(-100, W * T + 100), z = rnd(-100, H * T + 100);
-    if (x > -5 && x < W * T + 5 && z > -5 && z < H * T + 5) continue;
-    const s = rnd(.7, 1.7); trees.push(M4(x, 4 * s, z, rnd(0, 6), s, s, s));
+  tg.setAttribute('color', new THREE.Float32BufferAttribute(tcol, 3)); tg.computeVertexNormals();
+  const terrain = new THREE.Mesh(tg, new THREE.MeshLambertMaterial({ vertexColors: true }));
+  terrain.position.set(cx, 0, cz); scene.add(terrain);
+
+  // pine forest: trunk and three tiers of needles; boulders between them
+  const trunks = [], tiers = [[], [], []], rocks = [];
+  while (trunks.length < 650) {
+    const x = rnd(-160, W * T + 160), z = rnd(-160, H * T + 160);
+    if (x > -8 && x < W * T + 8 && z > -8 && z < H * T + 8) continue;
+    if (fbm(x * .02, z * .02) < .38) continue; // clearings
+    const s = rnd(.7, 1.6), y = terrH(x, z), ry = rnd(0, 6);
+    trunks.push(M4(x, y + 1.5 * s, z, ry, s, s, s));
+    tiers.forEach((t, k) => t.push(M4(x, y + (3 + k * 2.2) * s, z, ry, s * (1 - k * .22), s, s * (1 - k * .22))));
   }
-  inst(new THREE.ConeGeometry(1.8, 8, 7), new THREE.MeshBasicMaterial({ color: 0x090c0e }), trees);
+  while (rocks.length < 160) {
+    const x = rnd(-120, W * T + 120), z = rnd(-120, H * T + 120);
+    if (x > -6 && x < W * T + 6 && z > -6 && z < H * T + 6) continue;
+    const s = rnd(.5, 2.4); rocks.push(M4(x, terrH(x, z) + s * .3, z, rnd(0, 6), s * rnd(.8, 1.4), s * rnd(.5, .9), s, rnd(0, .4)));
+  }
+  inst(new THREE.CylinderGeometry(.18, .3, 3, 6), new THREE.MeshLambertMaterial({ color: 0x3a2c20 }), trunks);
+  const needles = new THREE.MeshLambertMaterial({ color: 0x22382a });
+  tiers.forEach((t, k) => inst(new THREE.ConeGeometry(2.2 - k * .3, 3.6, 8), needles, t));
+  inst(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ color: 0x6b7072 }), rocks);
 }
 
 function build() {
   if (!TEX) makeTextures();
   genMap();
   scene = new THREE.Scene();
-  const FOG = 0x1a2027;
+  const FOG = 0x4a5868;
   scene.background = new THREE.Color(FOG);
-  scene.fog = new THREE.FogExp2(FOG, .048);
+  scene.fog = new THREE.FogExp2(FOG, .022);
   buildOutside();
   OBST = [];
   const wallMat = std({ map: TEX.wall }), hallMat = std({ map: TEX.hallWall }), stoneMat = std({ map: TEX.stone }),
@@ -839,7 +902,7 @@ function build() {
   anchors.terrace.push({ x: 33.75 * T, y: 1.5, z: 31 * T - .32, ry: Math.PI }, { x: 36.5 * T, y: 1.5, z: 31 * T - .32, ry: Math.PI });
 
   // --- lights
-  scene.add(new THREE.HemisphereLight(0x2b3846, 0x07080a, .22));
+  scene.add(new THREE.HemisphereLight(0x8fa2bc, 0x2a2a22, .6));
   while (camera.children.length) camera.remove(camera.children[0]);
   flash = new THREE.SpotLight(0xfff0d2, 2.8, 30, .42, .55, 1.3);
   flash.position.set(.15, -.12, 0); flash.target.position.set(0, 0, -1);
@@ -934,11 +997,11 @@ function build() {
   }
   mp.set(mistBase);
   const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(mp, 3));
-  mist = new THREE.Points(mg, new THREE.PointsMaterial({ map: TEX.mist, color: 0x8794a2, size: 5, transparent: true, opacity: .09, depthWrite: false }));
+  mist = new THREE.Points(mg, new THREE.PointsMaterial({ map: TEX.mist, color: 0xb4c0cc, size: 5, transparent: true, opacity: .07, depthWrite: false }));
   scene.add(mist);
 
   // --- the player starts in the far corner of the ala
-  Object.assign(P, { x: tc(1) + .5, z: tc(1), y: UP, yaw: -Math.PI / 2, pitch: 0, bob: 0, stepPhase: 0, battery: 100, stamina: 100, exhausted: false, light: true, running: false, pages: 0, zone: Z.WARD });
+  Object.assign(P, { x: tc(1) + .5, z: tc(1), y: UP, yaw: -Math.PI / 2, pitch: 0, bob: 0, stepPhase: 0, battery: 100, light: true, running: false, pages: 0, zone: Z.WARD, safe: 0 });
 
   // --- five of them, already walking, spread across the grounds
   MONSTERS.length = 0;
@@ -1094,9 +1157,9 @@ if (TOUCH) $('#keys').innerHTML = '<dt>Esquerda</dt><dd>arrasta para andar</dd><
 /* ---------- Monster AI ---------- */
 const tileOf = (x, z) => [Math.floor(x / T), Math.floor(z / T)];
 function pathTo(m, x, z) { const [sx, sy] = tileOf(m.x, m.z), [tx, ty] = tileOf(x, z); return bfs(sx, sy, tx, ty) || []; }
-function relocate(m) {
+function relocate(m, min = 14, max = 24) {
   const [px, py] = tileOf(P.x, P.z), d = distField(px, py);
-  const c = FLOOR.filter(([x, y]) => { const v = d[y * W + x]; return v >= 14 && v <= 24 && !lineClear(tc(x), tc(y), P.x, P.z); });
+  const c = FLOOR.filter(([x, y]) => { const v = d[y * W + x]; return v >= min && v <= max && !lineClear(tc(x), tc(y), P.x, P.z); });
   if (!c.length) return;
   const [x, y] = c[Math.random() * c.length | 0]; m.x = tc(x); m.z = tc(y); m.y = floorH(m.x, m.z); m.path = null;
 }
@@ -1117,7 +1180,7 @@ function updateMonster(m, dt, lookDir) {
   const litUp = lightOn && dist < 22 && Math.acos(clamp((lookDir.x * -dx + lookDir.z * -dz) / (dist * Math.hypot(lookDir.x, lookDir.z) + 1e-6), -1, 1)) < .45;
   const sees = los && ((lightOn && dist < 16 && (facing || litUp)) || (dist < 6 && facing));
   const hears = P.running && P.moving && dist < 11 && dy < 3;
-  if (sees || hears || (dist < 2.4 && dy < 2)) {
+  if (P.safe <= 0 && (sees || hears || (dist < 2.4 && dy < 2))) {
     if (m.state !== 'chase' && dist > 5) msg(sees ? 'Um deles viu a tua luz.' : 'Um deles ouviu-te.', 2.5);
     m.lastSeen = now; m.lkx = P.x; m.lkz = P.z; m.state = 'chase';
   }
@@ -1161,7 +1224,7 @@ function updateMonster(m, dt, lookDir) {
       if (g > .01) { tmpV.set(m.x, m.y + 1.5, m.z).applyMatrix4(camera.matrixWorldInverse); A.thud(g, clamp(tmpV.x / Math.max(1, Math.hypot(tmpV.x, tmpV.z)), -1, 1)); }
     }
   }
-  if (dist < .95 && dy < 1.5) jumpscare(m);
+  if (P.safe <= 0 && dist < .95 && dy < 1.5) jumpscare(m);
 }
 
 /* ---------- Jumpscare ---------- */
@@ -1186,7 +1249,14 @@ function updateScare(dt) {
   flash.intensity = Math.random() < .5 ? 4 : .5;
   $('#flash').style.opacity = Math.random() < .3 ? .8 : 0;
   $('#static').style.opacity = .6; drawStatic();
-  if (scareT > 1.5) { scarer.mesh.userData.head.scale.setScalar(1); scareLight.intensity = 0; finish(false); }
+  if (scareT > 1.5) {
+    scarer.mesh.userData.head.scale.setScalar(1); scareLight.intensity = 0;
+    relocate(scarer, 22, 60);
+    MONSTERS.forEach(m => { if (m.state !== 'patrol') { m.state = 'patrol'; m.path = null; } });
+    P.safe = 5; state = 'play';
+    $('#hud').hidden = false; $('#touch').hidden = !TOUCH; $('#flash').style.opacity = 0;
+    msg('Escapaste por um triz. Ele desapareceu no nevoeiro.', 4);
+  }
 }
 
 /* ---------- Static overlay ---------- */
@@ -1200,6 +1270,7 @@ function drawStatic() {
 /* ---------- Main update ---------- */
 function update(dt) {
   now += dt;
+  P.safe = Math.max(0, P.safe - dt);
   let mx = 0, my = 0;
   if (keys.KeyW || keys.ArrowUp) my += 1;
   if (keys.KeyS || keys.ArrowDown) my -= 1;
@@ -1209,10 +1280,7 @@ function update(dt) {
   const ml = Math.hypot(mx, my); if (ml > 1) { mx /= ml; my /= ml; }
   P.moving = ml > .1;
   const wantRun = (keys.ShiftLeft || keys.ShiftRight || touchRun) && P.moving;
-  P.running = wantRun && !P.exhausted && P.stamina > 0;
-  P.stamina = clamp(P.stamina + (P.running ? -22 : 14) * dt, 0, 100);
-  if (P.stamina <= 0) P.exhausted = true;
-  if (P.exhausted && P.stamina > 40) P.exhausted = false;
+  P.running = wantRun;
   const speed = P.running ? 5 : 2.7;
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   const vx = (fx * my + rx * mx) * speed * dt, vz = (fz * my + rz * mx) * speed * dt;
@@ -1327,7 +1395,7 @@ function update(dt) {
     }
   }
   heartT -= dt;
-  if ((fear > .15 || P.exhausted) && heartT <= 0) { A.heart(.25 + fear * .5); heartT = 1.15 - fear * .7; }
+  if (fear > .15 && heartT <= 0) { A.heart(.25 + fear * .5); heartT = 1.15 - fear * .7; }
   knockT -= dt;
   if (knockT <= 0) { A.knock(); knockT = rnd(25, 55); }
 
@@ -1335,7 +1403,6 @@ function update(dt) {
   if (noteTimer > 0) { noteTimer -= dt; if (noteTimer <= 0) $('#note').hidden = true; }
   $('#pg').textContent = `${P.pages}/${NPAGES}`;
   const bat = $('#bat'); bat.style.width = P.battery + '%'; bat.classList.toggle('low', P.battery < 20);
-  const sta = $('#sta'); sta.style.width = P.stamina + '%'; sta.classList.toggle('low', P.exhausted);
 }
 
 let last = performance.now();
