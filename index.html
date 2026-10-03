@@ -97,9 +97,9 @@ h2 { font-size: clamp(2.4rem, 9vw, 4rem); color: var(--paper); }
 
 <section id="start" class="screen">
   <div class="file">
-    <span class="stamp">Prontuário 13/87 · Hospital Santa Luzia</span>
+    <span class="stamp">Prontuário 13/52 · Sanatório de Santa Luzia</span>
     <h1>Ala 13</h1>
-    <p>A ala foi fechada em 1987, na noite em que o Dr. Moura e seus pacientes desapareceram. O diário dele ficou espalhado pelos corredores. Junte as 6 páginas para destrancar a saída.</p>
+    <p>O sanatório fica no alto da serra, a 1&#8239;640 metros, onde o nevoeiro nunca levanta. Foi fechado em 1952, na noite em que o Dr. Moura e os doentes da ala 13 desapareceram. O diário dele ficou espalhado pelos quartos. Junte as 6 páginas para destrancar a porta principal.</p>
     <p class="warn">A luz o atrai. O som dos seus passos também.</p>
     <dl class="keys" id="keys">
       <dt>W A S D</dt><dd>andar</dd>
@@ -152,7 +152,7 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
-const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 80);
+const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 400);
 camera.rotation.order = 'YXZ';
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
@@ -188,8 +188,8 @@ function stains(x, w, h, n, color) {
 let TEX = null;
 function makeTextures() {
   const wall = canvasTex(256, 256, (x, w, h) => {
-    x.fillStyle = '#7b8473'; x.fillRect(0, 0, w, h);
-    x.fillStyle = '#4c584f'; x.fillRect(0, h * .56, w, h * .44);
+    x.fillStyle = '#8f9488'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#56685f'; x.fillRect(0, h * .56, w, h * .44);
     x.strokeStyle = 'rgba(18,24,18,.55)'; x.lineWidth = 2;
     for (let y = h * .56; y < h; y += 22) { x.beginPath(); x.moveTo(0, y); x.lineTo(w, y); x.stroke(); }
     for (let i = 0; i <= w; i += 32) { x.beginPath(); x.moveTo(i, h * .56); x.lineTo(i, h); x.stroke(); }
@@ -265,17 +265,50 @@ function makeTextures() {
     x.fillStyle = '#8f1b12'; x.font = '38px "Special Elite", monospace'; x.textAlign = 'center';
     x.fillText(p.scrawl, 0, 0); x.restore();
   }));
-  TEX = { wall, floor, ceil, door, sign, mouth, pages };
+  const glass = canvasTex(128, 128, (x, w, h) => {
+    x.fillStyle = '#7f8a94'; x.fillRect(0, 0, w, h);
+    stains(x, w, h, 14, 'rgba(40,46,40,.6)'); speckle(x, w, h, 900, .3);
+    x.strokeStyle = 'rgba(20,20,20,.7)'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(20, 10); x.lineTo(46, 50); x.lineTo(40, 90); x.moveTo(46, 50); x.lineTo(80, 62); x.stroke();
+  });
+  const shaft = canvasTex(64, 128, (x, w, h) => {
+    const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,.05)');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    const e = x.createLinearGradient(0, 0, w, 0); e.addColorStop(0, '#000'); e.addColorStop(.2, 'rgba(0,0,0,0)'); e.addColorStop(.8, 'rgba(0,0,0,0)'); e.addColorStop(1, '#000');
+    x.fillStyle = e; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#000'; x.fillRect(w / 2 - 1, 0, 2, h); x.fillRect(w * .33, 0, 1, h); x.fillRect(w * .66, 0, 1, h);
+    x.globalCompositeOperation = 'multiply'; x.fillStyle = '#555'; x.fillRect(0, 0, w, h);
+  });
+  const patch = canvasTex(128, 128, (x, w, h) => {
+    x.fillStyle = '#000'; x.fillRect(0, 0, w, h);
+    x.filter = 'blur(4px)';
+    x.fillStyle = 'rgba(120,120,120,1)'; x.fillRect(12, 10, w - 24, h - 20);
+    x.fillStyle = '#000'; x.fillRect(w / 2 - 22, 0, 4, h); x.fillRect(w / 2 + 18, 0, 4, h); x.fillRect(0, h * .3, w, 4);
+    x.filter = 'none';
+  });
+  const sheet = canvasTex(128, 128, (x, w, h) => {
+    x.fillStyle = '#a9a693'; x.fillRect(0, 0, w, h);
+    speckle(x, w, h, 1200, .15); stains(x, w, h, 4, 'rgba(110,90,40,.45)'); if (Math.random() < 1) stains(x, w, h, 1, 'rgba(100,15,10,.35)');
+  });
+  const bars = canvasTex(128, 128, (x, w, h) => {
+    x.clearRect(0, 0, w, h); x.fillStyle = '#3c403b';
+    x.fillRect(0, 0, 8, h); x.fillRect(w - 8, 0, 8, h); x.fillRect(0, 6, w, 8); x.fillRect(0, h - 40, w, 6);
+    for (let i = 1; i < 7; i++) x.fillRect(i * w / 7 - 2, 6, 4, h - 40);
+  });
+  const mist = canvasTex(64, 64, (x, w, h) => {
+    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,.8)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+  });
+  TEX = { wall, floor, ceil, door, sign, mouth, pages, glass, shaft, patch, sheet, bars, mist };
 }
 
 /* ---------- Story ---------- */
 const PAGES = [
-  { scrawl: 'ELE VÊ', text: '12 de março de 1987. Os pacientes da ala 13 não dormem mais. Dizem que alguém fica parado no fim do corredor, olhando.' },
-  { scrawl: 'APAGUE', text: 'Ele vem atrás da luz. Desliguei a lanterna e ele passou a dois metros de mim sem me ver.' },
-  { scrawl: 'NÃO CORRA', text: 'O barulho dos passos o chama. Quem correu na ronda de ontem não voltou.' },
-  { scrawl: 'LÚCIA?', text: 'A enfermeira Lúcia sumiu na ronda das três. Encontramos só a lanterna dela, ainda acesa.' },
-  { scrawl: 'A CHAVE', text: 'Tranquei a saída por dentro. O segredo da fechadura está dividido entre estas páginas.' },
-  { scrawl: 'SAIA', text: 'Se você está lendo a última página, ele já sabe que você está aqui. Vá para a SAÍDA. Agora.' },
+  { scrawl: 'ELE VÊ', text: '3 de novembro de 1951. O nevoeiro subiu a serra e não desceu mais. Os doentes dizem que alguém caminha no fim da galeria, entre as janelas.' },
+  { scrawl: 'APAGUE', text: 'Ele vem atrás da luz. Apaguei a lanterna e ele passou a dois metros da minha cama sem me ver.' },
+  { scrawl: 'NÃO CORRA', text: 'O barulho dos passos o chama. Quem correu pela galeria ontem à noite não voltou.' },
+  { scrawl: 'LÚCIA?', text: 'A irmã Lúcia sumiu na ronda das três. Encontramos só a lanterna dela, ainda acesa, junto a uma janela aberta.' },
+  { scrawl: 'A CHAVE', text: 'Tranquei a porta principal por dentro. O segredo da fechadura está dividido entre estas páginas.' },
+  { scrawl: 'SAIA', text: 'Se você está lendo a última página, ele já sabe que você está aqui. Desça até a porta principal. Agora.' },
 ];
 
 /* ---------- Audio ---------- */
@@ -297,10 +330,16 @@ const A = {
     [40, 40.7, 60.3].forEach(f => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(dl); o.start(); });
     // wind in the vents
     const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 380; bp.Q.value = .9;
-    const wg = ac.createGain(); wg.gain.value = .035;
+    const wg = ac.createGain(); wg.gain.value = .06;
     loop().connect(bp).connect(wg).connect(m);
     const lfo = ac.createOscillator(); lfo.frequency.value = .06; const lg = ac.createGain(); lg.gain.value = 220;
     lfo.connect(lg).connect(bp.frequency); lfo.start();
+    // wind whistling in the window frames
+    const hw = ac.createBiquadFilter(); hw.type = 'bandpass'; hw.frequency.value = 700; hw.Q.value = 14;
+    const hg = ac.createGain(); hg.gain.value = .05;
+    loop().connect(hw).connect(hg).connect(m);
+    const hl = ac.createOscillator(); hl.frequency.value = .11; const hlg = ac.createGain(); hlg.gain.value = 260;
+    hl.connect(hlg).connect(hw.frequency); hl.start();
     // static (fear)
     const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800;
     this.staticG = ac.createGain(); this.staticG.gain.value = 0;
@@ -364,31 +403,34 @@ const A = {
   },
 };
 
-/* ---------- Maze ---------- */
-const T = 3, WH = 3.2, CW = 11, CH = 11;
-let G, W, H;
+/* ---------- Sanatorium layout ---------- */
+// Tiles: 0 floor, 1 wall, 3 glazed outer wall. Three long galleries joined at both ends and by a central hall,
+// with blocks of patient rooms (back to back) between them.
+const T = 3, WH = 4.2, WIN_LO = 1.0, WIN_HI = 3.4;
+let G, W, H, ZONE, ROOMS, FLOOR;
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-function genMaze() {
-  W = CW * 2 + 1; H = CH * 2 + 1;
+function genSanatorium() {
+  W = 43; H = 22;
   G = Array.from({ length: H }, () => Array(W).fill(1));
-  const vis = new Set(['0,0']), stack = [[0, 0]]; G[1][1] = 0;
-  while (stack.length) {
-    const [cx, cy] = stack[stack.length - 1];
-    const nb = DIRS.map(([dx, dy]) => [cx + dx, cy + dy, dx, dy]).filter(([x, y]) => x >= 0 && y >= 0 && x < CW && y < CH && !vis.has(x + ',' + y));
-    if (!nb.length) { stack.pop(); continue; }
-    const [nx, ny, dx, dy] = nb[Math.random() * nb.length | 0];
-    G[cy * 2 + 1 + dy][cx * 2 + 1 + dx] = 0; G[ny * 2 + 1][nx * 2 + 1] = 0;
-    vis.add(nx + ',' + ny); stack.push([nx, ny]);
+  ZONE = new Int16Array(W * H).fill(-1);
+  ROOMS = [];
+  const carve = (x0, y0, x1, y1, z) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { G[y][x] = 0; ZONE[y * W + x] = z; } };
+  carve(1, 1, W - 2, 2, 0); carve(1, 10, W - 2, 11, 0); carve(1, 19, W - 2, 20, 0);
+  carve(1, 1, 2, H - 2, 0); carve(W - 3, 1, W - 2, H - 2, 0); carve(20, 1, 22, H - 2, 0);
+  for (const by of [3, 12]) for (const xs of [4, 24]) for (let k = 0; k < 4; k++) {
+    const rx = xs + k * 4;
+    for (const top of [true, false]) {
+      const id = ROOMS.length + 1, y0 = top ? by + 1 : by + 4, doorY = top ? by : by + 6;
+      carve(rx, y0, rx + 2, y0 + 1, id);
+      if (Math.random() > .12) { G[doorY][rx + 1] = 0; ZONE[doorY * W + rx + 1] = id; }
+      ROOMS.push({ id, rx, frontY: top ? by + 1 : by + 5, backZ: (top ? by + 3 : by + 4) * T, dirZ: top ? -1 : 1 });
+    }
+    if (Math.random() < .3) G[by + 3][rx + 1] = 0; // a hole between two rooms
   }
-  // loops, so being chased is not a death sentence
-  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
-    if (G[y][x] === 1 && (x + y) % 2 === 1 && Math.random() < .1) G[y][x] = 0;
-  // a few open wards
-  for (let r = 0; r < 3; r++) {
-    const cx = 1 + 2 * (1 + (Math.random() * (CW - 2) | 0)), cy = 1 + 2 * (1 + (Math.random() * (CH - 2) | 0));
-    if (cx < 5 && cy < 5) continue;
-    for (let y = cy - 1; y <= cy + 1; y++) for (let x = cx - 1; x <= cx + 1; x++) G[y][x] = 0;
-  }
+  for (let x = 1; x < W - 1; x++) { G[0][x] = 3; G[H - 1][x] = 3; }
+  for (let y = 1; y < H - 1; y++) { G[y][0] = 3; G[y][W - 1] = 3; }
+  FLOOR = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (G[y][x] === 0) FLOOR.push([x, y]);
 }
 const open = (x, y) => x >= 0 && y >= 0 && x < W && y < H && G[y][x] === 0;
 const openW = (x, z) => open(Math.floor(x / T), Math.floor(z / T));
@@ -420,17 +462,26 @@ function lineClear(ax, az, bx, bz) {
 }
 
 /* ---------- World ---------- */
-let scene, flash, playerGlow, monster, lamps, pages, batteries, exit, startT;
+let scene, flash, playerGlow, monster, lamps, pages, batteries, exit, startT, beds, mist;
 const P = { x: 0, z: 0, yaw: 0, pitch: 0, bob: 0, stepPhase: 0, battery: 100, stamina: 100, exhausted: false, light: true, running: false, pages: 0 };
 const M = { x: 0, z: 0, state: 'dormant', path: null, repath: 0, lastSeen: -99, lkx: 0, lkz: 0, stepT: 0, far: 0, rot: 0 };
 let state = 'menu', now = 0, fear = 0, heartT = 0, knockT = 20, lockedMsgT = 0;
 
-function placeOnWall(cx, cy, group, y) {
-  const opens = DIRS.filter(([dx, dy]) => open(cx + dx, cy + dy));
-  let e = DIRS.find(([dx, dy]) => !open(cx + dx, cy + dy) && opens.length === 1 && dx === -opens[0][0] && dy === -opens[0][1])
-    || DIRS.find(([dx, dy]) => !open(cx + dx, cy + dy)) || [0, 1];
-  group.position.set(tc(cx) + e[0] * (T / 2 - .03), y, tc(cy) + e[1] * (T / 2 - .03));
-  group.rotation.y = Math.atan2(-e[0], -e[1]);
+// Places an object flat against the wall on side e = [dx, dy] of tile (tx, ty), facing into the tile.
+function placeAt(tx, ty, e, obj, y) {
+  obj.position.set(tc(tx) + e[0] * (T / 2 - .03), y, tc(ty) + e[1] * (T / 2 - .03));
+  obj.rotation.y = Math.atan2(-e[0], -e[1]);
+}
+const _p = new THREE.Object3D(), _c = new THREE.Object3D(); _p.add(_c);
+function lm(wx, wz, ry, lx, ly, lz, rx = 0, sx = 1, sy = 1, sz = 1) {
+  _p.position.set(wx, 0, wz); _p.rotation.set(0, ry, 0);
+  _c.position.set(lx, ly, lz); _c.rotation.set(rx, 0, 0); _c.scale.set(sx, sy, sz);
+  _p.updateMatrixWorld(true); return _c.matrixWorld.clone();
+}
+function instanced(geo, mat, list) {
+  const m = new THREE.InstancedMesh(geo, mat, Math.max(1, list.length));
+  list.forEach((x, i) => m.setMatrixAt(i, x)); m.count = list.length;
+  scene.add(m); return m;
 }
 
 function makeMonster() {
@@ -459,30 +510,91 @@ function makeMonster() {
   return g;
 }
 
+function buildOutside() {
+  const cx = W * T / 2, cz = H * T / 2;
+  // sky dome: dark overhead, mist-grey at the horizon
+  const skyGeo = new THREE.SphereGeometry(350, 24, 16), cols = [], top = new THREE.Color(0x06080b), hor = new THREE.Color(0x20272f), c = new THREE.Color();
+  const pos = skyGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) { c.copy(hor).lerp(top, clamp(pos.getY(i) / 160, 0, 1)); cols.push(c.r, c.g, c.b); }
+  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
+  sky.position.set(cx, 0, cz); scene.add(sky);
+  // the serra: ridges fading behind the fog
+  const ridgeMat = new THREE.MeshBasicMaterial({ color: 0x141a20, fog: false });
+  for (let i = 0; i < 14; i++) {
+    const a = i / 14 * Math.PI * 2 + rnd(-.15, .15), d = rnd(250, 320), h = rnd(50, 130);
+    const m = new THREE.Mesh(new THREE.ConeGeometry(rnd(70, 130), h, 5), ridgeMat);
+    m.position.set(cx + Math.cos(a) * d, h / 2 - 25, cz + Math.sin(a) * d); scene.add(m);
+  }
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.MeshBasicMaterial({ color: 0x232a31 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.set(cx, -.02, cz); scene.add(ground);
+  // pines around the building
+  const trees = [];
+  while (trees.length < 240) {
+    const x = rnd(-90, W * T + 90), z = rnd(-90, H * T + 90);
+    if (x > -6 && x < W * T + 6 && z > -6 && z < H * T + 6) continue;
+    const s = rnd(.7, 1.6); trees.push(lm(x, z, rnd(0, 6), 0, 4 * s, 0, 0, s, s, s));
+  }
+  instanced(new THREE.ConeGeometry(1.8, 8, 7), new THREE.MeshBasicMaterial({ color: 0x090c0e }), trees);
+}
+
 function build() {
   if (!TEX) makeTextures();
-  genMaze();
+  genSanatorium();
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000000);
-  scene.fog = new THREE.FogExp2(0x000000, .085);
+  const FOG = 0x1a2027;
+  scene.background = new THREE.Color(FOG);
+  scene.fog = new THREE.FogExp2(FOG, .05);
+  buildOutside();
 
-  // walls
-  const cells = []; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (G[y][x] === 1) cells.push([x, y]);
-  const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(T, WH, T), new THREE.MeshStandardMaterial({ map: TEX.wall, roughness: .92 }), cells.length);
-  const mtx = new THREE.Matrix4();
-  cells.forEach(([x, y], i) => { mtx.makeTranslation(tc(x), WH / 2, tc(y)); walls.setMatrixAt(i, mtx); });
-  scene.add(walls);
+  const wallMat = new THREE.MeshStandardMaterial({ map: TEX.wall, roughness: .92 });
+  const solid = [], wins = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (G[y][x] === 1) solid.push(lm(tc(x), tc(y), 0, 0, WH / 2, 0));
+    if (G[y][x] === 3) {
+      const n = y === 0 ? [0, 1] : y === H - 1 ? [0, -1] : x === 0 ? [1, 0] : [-1, 0];
+      wins.push({ x: tc(x) + n[0] * T / 2, z: tc(y) + n[1] * T / 2, ry: Math.atan2(n[0], n[1]), tx: x, ty: y });
+    }
+  }
+  // the exit: main door in the lower gallery, far from the start
+  const ew = wins.filter(w => w.ty === H - 1 && w.tx >= 26 && w.tx <= 38 && w.tx % 2 === 0);
+  const ed = ew[Math.random() * ew.length | 0];
+  G[ed.ty][ed.tx] = 1;
+  wins.splice(wins.indexOf(ed), 1);
+  solid.push(lm(tc(ed.tx), tc(ed.ty), 0, 0, WH / 2, 0));
+  instanced(new THREE.BoxGeometry(T, WH, T), wallMat, solid);
+
+  // tall windows: sill, lintel, frames, dirty glass, and moonlight falling through the mist
+  const L = (w, ...a) => lm(w.x, w.z, w.ry, ...a);
+  instanced(new THREE.BoxGeometry(T, WIN_LO, T), wallMat, wins.map(w => L(w, 0, WIN_LO / 2, -T / 2)));
+  instanced(new THREE.BoxGeometry(T, WH - WIN_HI, T), wallMat, wins.map(w => L(w, 0, (WH + WIN_HI) / 2, -T / 2)));
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x33372f, roughness: .8 });
+  const wh = WIN_HI - WIN_LO;
+  instanced(new THREE.BoxGeometry(.32, wh, .5), frameMat, wins.map(w => L(w, -T / 2 + .16, WIN_LO + wh / 2, -T / 2)));
+  instanced(new THREE.BoxGeometry(.07, wh, .1), frameMat, wins.flatMap(w => [L(w, -.5, WIN_LO + wh / 2, -T / 2), L(w, .5, WIN_LO + wh / 2, -T / 2)]));
+  instanced(new THREE.BoxGeometry(T, .08, .1), frameMat, wins.map(w => L(w, 0, 2.75, -T / 2)));
+  instanced(new THREE.PlaneGeometry(T, wh), new THREE.MeshBasicMaterial({ map: TEX.glass, color: 0x9fb0c0, transparent: true, opacity: .16, depthWrite: false, side: THREE.DoubleSide }),
+    wins.map(w => L(w, 0, WIN_LO + wh / 2, -T / 2)));
+  const lightMat = (map, color) => new THREE.MeshBasicMaterial({ map, color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const shafts = [];
+  wins.forEach(w => [WIN_HI - .1, 2.1].forEach(h => {
+    shafts.push(L(w, 0, h / 2, h / 2, -Math.PI / 4, 1, h * Math.SQRT2, 1));
+  }));
+  instanced(new THREE.PlaneGeometry(2.6, 1), lightMat(TEX.shaft, 0x1d2733), shafts);
+  instanced(new THREE.PlaneGeometry(T, WIN_HI - WIN_LO), lightMat(TEX.patch, 0x34465a), wins.map(w => L(w, 0, .02, (WIN_LO + WIN_HI) / 2, -Math.PI / 2)));
+
+  // floor and ceiling
   const fTex = TEX.floor.clone(); fTex.needsUpdate = true; fTex.repeat.set(W, H); fTex.wrapS = fTex.wrapT = THREE.RepeatWrapping;
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W * T, H * T), new THREE.MeshStandardMaterial({ map: fTex, roughness: .8 }));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W * T, H * T), new THREE.MeshStandardMaterial({ map: fTex, roughness: .7 }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(W * T / 2, 0, H * T / 2); scene.add(floor);
   const cTex = TEX.ceil.clone(); cTex.needsUpdate = true; cTex.repeat.set(W * 1.5, H * 1.5); cTex.wrapS = cTex.wrapT = THREE.RepeatWrapping;
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W * T, H * T), new THREE.MeshStandardMaterial({ map: cTex, roughness: 1 }));
   ceil.rotation.x = Math.PI / 2; ceil.position.set(W * T / 2, WH, H * T / 2); scene.add(ceil);
 
   // lights
-  scene.add(new THREE.HemisphereLight(0x1c2a20, 0x050505, .14));
+  scene.add(new THREE.HemisphereLight(0x2b3846, 0x07080a, .2));
   while (camera.children.length) camera.remove(camera.children[0]);
-  flash = new THREE.SpotLight(0xfff0d2, 2.8, 26, .42, .55, 1.4);
+  flash = new THREE.SpotLight(0xfff0d2, 2.8, 30, .42, .55, 1.3);
   flash.position.set(.15, -.12, 0); flash.target.position.set(0, 0, -1);
   camera.add(flash); camera.add(flash.target);
   playerGlow = new THREE.PointLight(0x7f8fa0, .22, 4.5, 2); camera.add(playerGlow);
@@ -490,75 +602,87 @@ function build() {
   scene.add(camera);
 
   const d0 = distField(1, 1);
-  const oddCells = [];
-  for (let y = 1; y < H; y += 2) for (let x = 1; x < W; x += 2) oddCells.push({ x, y, d: d0[y * W + x], dead: DIRS.filter(([dx, dy]) => open(x + dx, y + dy)).length === 1 });
+  const dOf = (x, y) => d0[y * W + x];
+  const corridor = FLOOR.filter(([x, y]) => ZONE[y * W + x] === 0);
 
-  // ceiling lamps, some dying
+  // hanging lamps in the galleries, some dying
   lamps = [];
-  const shuffled = oddCells.slice().sort(() => Math.random() - .5);
-  shuffled.slice(0, 4).forEach((c, i) => {
-    const red = i === 3;
-    const fix = new THREE.Mesh(new THREE.BoxGeometry(1.2, .06, .3), new THREE.MeshBasicMaterial({ color: red ? 0x7a1a12 : 0xd8d2b8 }));
-    fix.position.set(tc(c.x), WH - .04, tc(c.y)); scene.add(fix);
-    const l = new THREE.PointLight(red ? 0xff3322 : 0xe9dfc0, red ? 1.1 : .9, 10, 2);
-    l.position.set(tc(c.x), WH - .4, tc(c.y)); scene.add(l);
+  const lampTiles = corridor.filter(([x, y]) => x % 4 === 1 || y % 4 === 1).sort(() => Math.random() - .5).slice(0, 6);
+  lampTiles.forEach(([x, y], i) => {
+    const red = i === 5;
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, .9, 4), frameMat); cord.position.set(tc(x), WH - .45, tc(y)); scene.add(cord);
+    const fix = new THREE.Mesh(new THREE.SphereGeometry(.16, 10, 8), new THREE.MeshBasicMaterial({ color: red ? 0x8a1d14 : 0xe2dcc4 }));
+    fix.position.set(tc(x), WH - .95, tc(y)); scene.add(fix);
+    const l = new THREE.PointLight(red ? 0xff3322 : 0xe9dfc0, red ? 1.1 : .95, 11, 2);
+    l.position.set(tc(x), WH - 1.1, tc(y)); scene.add(l);
     lamps.push({ l, fix, col: fix.material.color.clone(), base: l.intensity, t: Math.random() * 10, dead: 0 });
   });
 
-  // pages: far dead ends, spread apart
+  // iron beds in the rooms
+  beds = [];
+  const bedM = { sheet: [], frame: [], head: [] };
+  ROOMS.forEach(r => {
+    [r.rx, r.rx + 2].forEach(bx => {
+      if (Math.random() < .3) return;
+      const x = tc(bx) + rnd(-.15, .15), z = r.backZ + r.dirZ * 1.08, ry = (r.dirZ > 0 ? 0 : Math.PI) + rnd(-.12, .12);
+      bedM.sheet.push(lm(x, z, ry, 0, .55, 0));
+      bedM.frame.push(lm(x, z, ry, 0, .38, 0));
+      bedM.head.push(lm(x, z, ry, 0, .6, -1.0), lm(x, z, ry, 0, .45, 1.0, 0, 1, .7, 1));
+      beds.push({ x0: x - .55, x1: x + .55, z0: z - 1.05, z1: z + 1.05 });
+    });
+  });
+  instanced(new THREE.BoxGeometry(.95, .2, 1.9), new THREE.MeshStandardMaterial({ map: TEX.sheet, roughness: 1 }), bedM.sheet);
+  instanced(new THREE.BoxGeometry(1.05, .07, 2.05), new THREE.MeshStandardMaterial({ color: 0x3c403b, metalness: .6, roughness: .5 }), bedM.frame);
+  instanced(new THREE.BoxGeometry(1.05, 1.0, .05), new THREE.MeshStandardMaterial({ map: TEX.bars, transparent: true, alphaTest: .5, metalness: .5, roughness: .5, side: THREE.DoubleSide }), bedM.head);
+
+  // pages: one per room, far from the start and spread out
+  const okRooms = ROOMS.filter(r => dOf(r.rx, r.frontY) >= 10).sort(() => Math.random() - .5);
   const chosen = [];
-  const far = (c, min) => chosen.every(o => Math.abs(o.x - c.x) + Math.abs(o.y - c.y) >= min);
-  oddCells.filter(c => c.dead && c.d >= 8).sort((a, b) => b.d - a.d).forEach(c => { if (chosen.length < 6 && far(c, 8)) chosen.push(c); });
-  shuffled.filter(c => c.d >= 6).forEach(c => { if (chosen.length < 6 && far(c, 5)) chosen.push(c); });
-  shuffled.forEach(c => { if (chosen.length < 6 && c.d > 2 && far(c, 1)) chosen.push(c); });
-  chosen.sort(() => Math.random() - .5);
-  pages = chosen.map((c, i) => {
+  okRooms.forEach(r => { if (chosen.length < 6 && chosen.every(o => Math.abs(o.rx - r.rx) + Math.abs(o.frontY - r.frontY) >= 8)) chosen.push(r); });
+  okRooms.forEach(r => { if (chosen.length < 6 && !chosen.includes(r)) chosen.push(r); });
+  pages = chosen.map((r, i) => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(.42, .52), new THREE.MeshStandardMaterial({ map: TEX.pages[i], roughness: .9, emissive: 0x1a1710, side: THREE.DoubleSide }));
-    placeOnWall(c.x, c.y, m, rnd(1.25, 1.6));
+    placeAt(r.rx, r.frontY, [-1, 0], m, rnd(1.3, 1.6));
     m.rotation.z = rnd(-.12, .12);
     scene.add(m);
     return { m, i, taken: false };
   });
 
   // batteries
-  batteries = shuffled.filter(c => c.d >= 5 && !chosen.includes(c)).slice(0, 3).map(c => {
+  batteries = corridor.filter(([x, y]) => dOf(x, y) >= 8).sort(() => Math.random() - .5).slice(0, 4).map(([x, y]) => {
     const b = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .26, 12), new THREE.MeshStandardMaterial({ color: 0x1c2420, emissive: 0x0a2a14, roughness: .4 }));
     const cap = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .04, 8), new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: .8, roughness: .3 }));
     cap.position.y = .15; b.add(body, cap);
-    b.position.set(tc(c.x) + rnd(-.6, .6), .13, tc(c.y) + rnd(-.6, .6));
+    b.position.set(tc(x) + rnd(-.6, .6), .13, tc(y) + rnd(-.6, .6));
     scene.add(b);
     return { m: b, taken: false };
   });
 
-  // exit door on the boundary farthest from the start
-  let best = null;
-  for (let i = 1; i < W; i += 2) {
-    [[i, 0, i, 1], [i, H - 1, i, H - 2]].forEach(c => { const d = d0[c[3] * W + c[2]]; if (!best || d > best.d) best = { c, d }; });
-  }
-  for (let i = 1; i < H; i += 2) {
-    [[0, i, 1, i], [W - 1, i, W - 2, i]].forEach(c => { const d = d0[c[3] * W + c[2]]; if (!best || d > best.d) best = { c, d }; });
-  }
-  const [ex, ey, nx, ny] = best.c, nrm = [nx - ex, ny - ey];
+  // main door
   const door = new THREE.Group();
-  const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.5), new THREE.MeshStandardMaterial({ map: TEX.door, roughness: .7, metalness: .2 }));
-  dm.position.y = 1.25; door.add(dm);
+  const dm = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 3.1), new THREE.MeshStandardMaterial({ map: TEX.door, roughness: .7, metalness: .2 }));
+  dm.position.y = 1.55; door.add(dm);
   const signMat = new THREE.MeshBasicMaterial({ map: TEX.sign, color: 0xff2a1a });
-  const sm = new THREE.Mesh(new THREE.PlaneGeometry(.9, .22), signMat); sm.position.y = 2.75; door.add(sm);
-  const exitLight = new THREE.PointLight(0x55ff88, 0, 9, 2); exitLight.position.set(0, 2.6, .6); door.add(exitLight);
-  door.position.set(tc(ex) + nrm[0] * (T / 2 + .02), 0, tc(ey) + nrm[1] * (T / 2 + .02));
-  door.rotation.y = Math.atan2(nrm[0], nrm[1]);
+  const sm = new THREE.Mesh(new THREE.PlaneGeometry(1, .25), signMat); sm.position.y = 3.45; door.add(sm);
+  const exitLight = new THREE.PointLight(0x55ff88, 0, 10, 2); exitLight.position.set(0, 3.2, .6); door.add(exitLight);
+  door.position.set(ed.x, 0, ed.z - .02); door.rotation.y = Math.PI;
   scene.add(door);
   exit = { x: door.position.x, z: door.position.z, signMat, exitLight, open: false };
+
+  // mist drifting through the galleries
+  const N = 900, mp = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { mp[i * 3] = rnd(0, W * T); mp[i * 3 + 1] = rnd(.2, 2.8); mp[i * 3 + 2] = rnd(0, H * T); }
+  const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(mp, 3));
+  mist = new THREE.Points(mg, new THREE.PointsMaterial({ map: TEX.mist, color: 0x8794a2, size: 5, transparent: true, opacity: .09, depthWrite: false }));
+  scene.add(mist);
 
   // monster
   monster = makeMonster(); scene.add(monster);
   Object.assign(M, { state: 'dormant', path: null, repath: 0, lastSeen: -99, stepT: 0, far: 0 });
 
-  // player
-  Object.assign(P, { x: tc(1), z: tc(1), pitch: 0, bob: 0, stepPhase: 0, battery: 100, stamina: 100, exhausted: false, light: true, running: false, pages: 0 });
-  const od = DIRS.find(([dx, dy]) => open(1 + dx, 1 + dy)) || [1, 0];
-  P.yaw = Math.atan2(-od[0], -od[1]);
+  // player starts at the top-left corner, looking down the upper gallery
+  Object.assign(P, { x: tc(1) + .5, z: tc(1), yaw: -Math.PI / 2, pitch: 0, bob: 0, stepPhase: 0, battery: 100, stamina: 100, exhausted: false, light: true, running: false, pages: 0 });
   fear = 0; knockT = rnd(15, 30); now = 0; startT = performance.now();
   $('#btnLight').classList.add('on');
 }
@@ -690,7 +814,7 @@ function finish(win) {
   $('#endStamp').textContent = win ? 'Alta concedida' : 'Óbito registrado';
   $('#endTitle').textContent = win ? 'Você escapou.' : 'Ele te encontrou.';
   $('#endText').textContent = win
-    ? 'A porta bateu atrás de você. Lá dentro, no fim do corredor, os olhos vermelhos continuam acesos.'
+    ? 'A porta bateu atrás de você. Lá fora, o nevoeiro cobre a serra inteira. Numa das janelas da galeria, dois olhos vermelhos continuam acesos.'
     : P.pages ? `Você leu ${P.pages} de 6 páginas. Agora seu nome também está no diário.` : 'Você nem chegou a ler o diário.';
   $('#endPages').textContent = `${P.pages}/6`;
   $('#endTime').textContent = fmtTime(performance.now() - startT);
@@ -709,35 +833,31 @@ function tileOf(x, z) { return [Math.floor(x / T), Math.floor(z / T)]; }
 function pathTo(x, z) { const [sx, sy] = tileOf(M.x, M.z), [tx, ty] = tileOf(x, z); return bfs(sx, sy, tx, ty) || []; }
 function wakeMonster() {
   const [px, py] = tileOf(P.x, P.z), d = distField(px, py);
-  const c = [];
-  for (let y = 1; y < H; y += 2) for (let x = 1; x < W; x += 2) { const v = d[y * W + x]; if (v >= 14 && v <= 26) c.push([x, y]); }
+  const c = FLOOR.filter(([x, y]) => { const v = d[y * W + x]; return v >= 16 && v <= 32; });
   const [x, y] = c.length ? c[Math.random() * c.length | 0] : [W - 2, H - 2];
   M.x = tc(x); M.z = tc(y); M.state = 'patrol'; M.path = null;
   monster.userData.eyeLight.intensity = .7;
 }
 function relocate() {
-  const [px, py] = tileOf(P.x, P.z), d = distField(px, py), c = [];
-  for (let y = 1; y < H; y += 2) for (let x = 1; x < W; x += 2) {
-    const v = d[y * W + x];
-    if (v >= 9 && v <= 15 && !lineClear(tc(x), tc(y), P.x, P.z)) c.push([x, y]);
-  }
+  const [px, py] = tileOf(P.x, P.z), d = distField(px, py);
+  const c = FLOOR.filter(([x, y]) => { const v = d[y * W + x]; return v >= 11 && v <= 18 && !lineClear(tc(x), tc(y), P.x, P.z); });
   if (!c.length) return;
   const [x, y] = c[Math.random() * c.length | 0]; M.x = tc(x); M.z = tc(y); M.path = null;
 }
 function patrolTarget() {
   for (let k = 0; k < 30; k++) {
-    const x = 1 + 2 * (Math.random() * CW | 0), y = 1 + 2 * (Math.random() * CH | 0);
-    if (Math.random() < .35 || Math.hypot(tc(x) - P.x, tc(y) - P.z) < 20) return [tc(x), tc(y)];
+    const [x, y] = FLOOR[Math.random() * FLOOR.length | 0];
+    if (Math.random() < .4 || Math.hypot(tc(x) - P.x, tc(y) - P.z) < 25) return [tc(x), tc(y)];
   }
   return [P.x, P.z];
 }
 function updateMonster(dt) {
   if (M.state === 'dormant') return;
   const dx = P.x - M.x, dz = P.z - M.z, dist = Math.hypot(dx, dz);
-  const los = dist < 26 && lineClear(M.x, M.z, P.x, P.z);
+  const los = dist < 30 && lineClear(M.x, M.z, P.x, P.z);
   const lightOn = P.light && P.battery > 0;
-  const sees = los && dist < (lightOn ? 15 : 6);
-  const hears = P.running && P.moving && dist < 11;
+  const sees = los && dist < (lightOn ? 18 : 7);
+  const hears = P.running && P.moving && dist < 12;
   if (sees || hears || dist < 2.6) {
     if (M.state !== 'chase' && dist > 5) msg(sees ? 'Ele viu a sua luz.' : 'Ele ouviu você.', 2.5);
     M.lastSeen = now; M.lkx = P.x; M.lkz = P.z; M.state = 'chase';
@@ -749,10 +869,10 @@ function updateMonster(dt) {
   } else if (M.state === 'search' && (!M.path || !M.path.length)) M.state = 'patrol';
   if (M.state === 'patrol') {
     if (!M.path || !M.path.length) { const [x, z] = patrolTarget(); M.path = pathTo(x, z); }
-    M.far = dist > 30 ? M.far + dt : 0;
+    M.far = dist > 38 ? M.far + dt : 0;
     if (M.far > 14) { M.far = 0; relocate(); }
   }
-  const speed = M.state === 'chase' ? 3.25 + .2 * P.pages : M.state === 'search' ? 2.4 : 1.7;
+  const speed = M.state === 'chase' ? 3.25 + .2 * P.pages : M.state === 'search' ? 2.5 : 1.9;
   let tx, tz;
   if (M.state === 'chase' && los && dist < 6) { tx = P.x; tz = P.z; }
   else if (M.path && M.path.length) {
@@ -845,7 +965,8 @@ function update(dt) {
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   const vx = (fx * my + rx * mx) * speed * dt, vz = (fz * my + rz * mx) * speed * dt;
   const r = .32;
-  const free = (x, z) => openW(x - r, z - r) && openW(x + r, z - r) && openW(x - r, z + r) && openW(x + r, z + r);
+  const free = (x, z) => openW(x - r, z - r) && openW(x + r, z - r) && openW(x - r, z + r) && openW(x + r, z + r)
+    && beds.every(b => x < b.x0 - r || x > b.x1 + r || z < b.z0 - r || z > b.z1 + r);
   if (free(P.x + vx, P.z)) P.x += vx;
   if (free(P.x, P.z + vz)) P.z += vz;
 
@@ -882,15 +1003,20 @@ function update(dt) {
     L.fix.material.color.copy(L.col).multiplyScalar(k > .3 ? 1 : .15);
   });
 
+  // mist drifts along the galleries
+  const mp = mist.geometry.attributes.position, mw = W * T;
+  for (let i = 0; i < mp.count; i++) { let x = mp.getX(i) + dt * (.35 + (i % 5) * .08); if (x > mw) x -= mw; mp.setX(i, x); }
+  mp.needsUpdate = true;
+
   // pickups
   pages.forEach(p => {
     if (p.taken) return;
     if (Math.hypot(p.m.position.x - P.x, p.m.position.z - P.z) < 1.4) {
       p.taken = true; scene.remove(p.m); P.pages++; A.pickup(); note(p.i);
-      if (P.pages === 1) { wakeMonster(); msg('Algo acordou na ala 13.', 4); }
+      if (P.pages === 1) { wakeMonster(); msg('Algo acordou no fim da galeria.', 4); }
       else if (P.pages === 6) {
         exit.open = true; exit.signMat.color.set(0x44ff77); exit.exitLight.intensity = 1.2; A.unlock();
-        msg('Um trinco se abriu longe daqui. Encontre a SAÍDA.', 5);
+        msg('Um trinco se abriu na porta principal, na galeria de baixo.', 5);
       }
     }
   });
@@ -904,7 +1030,7 @@ function update(dt) {
   const de = Math.hypot(exit.x - P.x, exit.z - P.z);
   if (de < 1.6) {
     if (exit.open) { finish(true); return; }
-    if (now > lockedMsgT) { msg(`Trancada. Faltam ${6 - P.pages} páginas.`, 2.5); lockedMsgT = now + 3; }
+    if (now > lockedMsgT) { msg(`A porta principal está trancada. Faltam ${6 - P.pages} páginas.`, 2.5); lockedMsgT = now + 3; }
   }
 
   // monster + fear
