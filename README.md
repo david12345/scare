@@ -1,15 +1,24 @@
 # Ala 13
 
-Jogo de terror em primeira pessoa, em 3D, num único arquivo HTML (Three.js).
+Jogo de terror em primeira pessoa, em 3D, num único ficheiro HTML (Three.js).
 
-Sanatório de Santa Luzia, no alto da serra, a 1 640 m, coberto de nevoeiro. Percorra as galerias longas e envidraçadas, junte as 6 páginas do diário do Dr. Moura nos quartos dos doentes e chegue à porta principal antes que *ele* te encontre.
+Sanatório de Santa Luzia, no alto da serra, a 1640 m, coberto de nevoeiro. Cinco criaturas deambulam pelo edifício e pelos terrenos desde o início. Junta as 8 páginas do diário do Dr. Moura e sai pelo portão.
 
-Abra `index.html` no navegador.
+Zonas:
+- **Ala 13**: piso superior com três galerias longas e envidraçadas e quartos com camas de ferro
+- **Escadaria** principal e escada de serviço
+- **Hall de entrada**, com dois pisos de altura, colunas e balcão de receção
+- **Capela**, com bancos e altar
+- **Cemitério**, com campas e cruzes
+- **Jardim**, com sebes, fonte com anjo e o portão de saída
+- **Galeria de cura**, com camas ao ar livre, e o **pomar**
+
+Abre `index.html` no navegador.
 
 - **W A S D**: andar
 - **Shift**: correr (faz barulho)
 - **F**: lanterna
-- **Mouse**: olhar
+- **Rato**: olhar
 - **Esc**: pausar
 
-No celular: arraste à esquerda para andar e à direita para olhar.
+No telemóvel: arrasta à esquerda para andar e à direita para olhar.
